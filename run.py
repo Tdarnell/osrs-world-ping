@@ -31,9 +31,9 @@ def getworlds():
         soup = bs4.BeautifulSoup(worlds.text, "html.parser")
         # get the table "server-list" as a pandas dataframe
         table = pd.read_html(str(soup.find("table", class_="server-list")))[0]
-        LOGGER.debug(f"Table: {table}")
         # name the columns   World	  Players	  Location	  members	  Activity
         table.columns = ["world", "players_str", "location", "type", "activity"]
+        LOGGER.debug(f"Table: {table}")
         # get the world ids, this is the same length as the table
         server_list = soup.find_all("a", "server-list__world-link")
         table["world_id"] = [
@@ -45,13 +45,21 @@ def getworlds():
         table["members"] = table["type"].apply(
             lambda x: True if x == "Members" else False
         )
-        table["players"] = table["players_str"].apply(
-            lambda x: int(re.search(r"\d+", x).group())
-        )
+        # table["players"] = table["players_str"].apply(
+        #     lambda x: int(re.search(r"\d+", x).group())
+        # )
+        for i, row in table.iterrows():
+            player_count = re.search(r"\d+", row["players_str"])
+            if player_count:
+                table.at[i, "players"] = int(player_count.group())
+            else:
+                table.at[i, "players"] = 0
         # convert the table to a list of dictionaries ready to be inserted into the database
         worldlist = table.to_dict(orient="records")
     except Exception as e:
         LOGGER.error(f"Error getting world list: {e}")
+        # log the traceback
+        LOGGER.exception(e)
         return worldlist
     return worldlist
 
