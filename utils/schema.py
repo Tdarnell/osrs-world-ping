@@ -18,6 +18,12 @@ class OSRSWorlds(Base):
     members = sa.Column(sa.Boolean)
     activity = sa.Column(sa.String)
 
+    def __repr__(self):
+        return f"<{self.__tablename__}({','.join([f'{k}={v}' for k, v in self.__dict__.items()])})>"
+
+    def to_dict(self):
+        return {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
+
 
 class PingData(Base):
     __tablename__ = "ping_data"
@@ -26,6 +32,12 @@ class PingData(Base):
     timestamp = sa.Column(sa.DateTime)
     ping = sa.Column(sa.Float)
     players = sa.Column(sa.Integer)
+
+    def __repr__(self):
+        return f"<{self.__tablename__}({','.join([f'{k}={v}' for k, v in self.__dict__.items()])})>"
+
+    def to_dict(self):
+        return {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
 
 
 @contextmanager
