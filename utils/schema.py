@@ -1,8 +1,8 @@
 from contextlib import contextmanager
-from typing import Any, Generator
+from typing import Any, Generator, List, Type
 import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
-from sqlalchemy.orm import scoped_session, sessionmaker, Session
+from sqlalchemy.orm import scoped_session, sessionmaker, Session, relationship, Mapped
 
 Base: DeclarativeMeta = declarative_base()
 
@@ -24,6 +24,11 @@ class OSRSWorlds(Base):
     def to_dict(self):
         return {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
 
+    def get_ping_data(
+        self, session: scoped_session[Session]
+    ) -> List[Mapped[Type["PingData"]]]:
+        return session.query(PingData).filter_by(world_id=self.world_id).all()
+
 
 class PingData(Base):
     __tablename__ = "ping_data"
@@ -32,6 +37,8 @@ class PingData(Base):
     timestamp = sa.Column(sa.DateTime)
     ping = sa.Column(sa.Float)
     players = sa.Column(sa.Integer)
+    # add a relationship to the OSRSWorlds table
+    world = relationship("OSRSWorlds")
 
     def __repr__(self):
         return f"<{self.__tablename__}({','.join([f'{k}={v}' for k, v in self.__dict__.items()])})>"
