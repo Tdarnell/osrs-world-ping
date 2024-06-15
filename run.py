@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
 import re
 import sys
@@ -5,11 +6,11 @@ import time
 
 import sqlalchemy as sa
 from utils import schema
-from pathlib import Path
 import bs4
 import requests
 import pandas as pd
 import logging
+import asyncio
 
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(
@@ -55,8 +56,28 @@ def getworlds():
     return worldlist
 
 
-if __name__ == "__main__":
-    worlds = getworlds()
+async def ping_world(world_url, world_id, players, semaphore):
+    async with semaphore:
+        LOGGER.info(f"Pinging {world_url}...")
+        try:
+            ping = requests.get(world_url).elapsed.total_seconds()
+            # use aio to sleep this thread for 1 second to avoid rate limiting
+            # the semaphore is released after the sleep
+            await asyncio.sleep(1)
+        except Exception as e:
+            LOGGER.error(f"Error pinging {world_url}: {e}")
+            ping = 9999.0
+        ping_data = schema.PingData(
+            world_id=world_id,
+            timestamp=pd.Timestamp.now(),
+            ping=ping,
+            players=int(players),
+        )
+        LOGGER.info(f"Pinged {world_url} with {ping} seconds and {players} players")
+        return ping_data
+
+
+async def insert_worlds(worlds):
     worlds_df = pd.DataFrame(worlds)
     LOGGER.info(f"Worlds:\n{worlds}")
     # create the database
@@ -66,6 +87,9 @@ if __name__ == "__main__":
     with schema.get_session(engine=engine) as session:
         worlds_to_insert = []
         for world in worlds:
+            if not isinstance(world, dict):
+                LOGGER.error(f"Invalid world data: {world}")
+                continue
             # check if the world is already in the database, if not insert it
             if (
                 not session.query(schema.OSRSWorlds)
@@ -81,6 +105,8 @@ if __name__ == "__main__":
         session.add_all(worlds_to_insert)
         LOGGER.info(f"Data inserted for {len(worlds_to_insert)} worlds")
         # ping all members worlds in Germany or United Kingdom, also store their player count
+        semaphore = asyncio.Semaphore(5)  # limit the number of concurrent requests
+        ping_tasks = []
         for world in session.query(schema.OSRSWorlds).filter(
             sa.or_(
                 schema.OSRSWorlds.location == "Germany",
@@ -88,24 +114,30 @@ if __name__ == "__main__":
             ),
             schema.OSRSWorlds.members == True,
         ):
-            LOGGER.info(f"Pinging {world.world_url}...")
-            ping: float = requests.get(world.world_url).elapsed.total_seconds()
-            players = worlds_df.loc[
-                worlds_df["world_id"] == world.world_id, "players"
-            ].values[0]
-            ping_data = schema.PingData(
-                world_id=world.world_id,
-                timestamp=pd.Timestamp.now(),
-                ping=ping,
-                players=int(players),
+            ping_task = ping_world(
+                world.world_url,
+                world.world_id,
+                worlds_df.loc[
+                    worlds_df["world_id"] == world.world_id, "players"
+                ].values[0],
+                semaphore,
             )
-            session.add(ping_data)
-            LOGGER.info(
-                f"Pinged {world.world_url} with {ping} seconds and {players} players"
-            )
-            # wait for a second to not spam the server
-            time.sleep(0.5)
+            ping_tasks.append(ping_task)
+        ping_results = await asyncio.gather(*ping_tasks)
+        session.add_all(ping_results)
         session.commit()
     LOGGER.info(
         f"Fetched {len(worlds)} worlds and pinged {len(worlds_to_insert)} members worlds in Germany or United Kingdom"
     )
+
+
+async def main():
+    try:
+        worlds = getworlds()
+        await insert_worlds(worlds)
+    except Exception as e:
+        LOGGER.error(f"Error: {e}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
