@@ -1,6 +1,6 @@
 # Old School RuneScape World Scraper
 
-This Python script scrapes the Old School RuneScape (OSRS) world list and stores the data in a SQLite database. It is currently hard coded to ping all member worlds located in Germany or the United Kingdom and stores the ping data and player count. A simple addition would be to make this take command line arguments to specify which countries to ping, or read a configuration file.
+This Python script scrapes the Old School RuneScape (OSRS) world list and stores the data in a SQLite database. 
 
 ## Dependencies
 
@@ -10,6 +10,7 @@ The script uses the following Python libraries:
 - `bs4` (BeautifulSoup) for parsing HTML
 - `pandas` for data manipulation
 - `sqlalchemy` for database operations
+- `matplotlib` for plotting (jupyter notebook only)
 
 ## How it works
 
