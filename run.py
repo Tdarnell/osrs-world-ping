@@ -9,6 +9,7 @@ import requests
 import pandas as pd
 import logging
 import asyncio
+import argparse
 
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(
@@ -83,7 +84,7 @@ async def ping_world(world_url, world_id, players, semaphore):
         return ping_data
 
 
-async def insert_worlds(worlds):
+async def insert_worlds(worlds, locations=["Germany", "United Kingdom"], members=True, activity=None):
     worlds_df = pd.DataFrame(worlds)
     LOGGER.info(f"Worlds:\n{worlds}")
     # create the database
@@ -114,12 +115,9 @@ async def insert_worlds(worlds):
         semaphore = asyncio.Semaphore(5)  # limit the number of concurrent requests
         ping_tasks = []
         for world in session.query(schema.OSRSWorlds).filter(
-            sa.or_(
-                schema.OSRSWorlds.location == "Germany",
-                schema.OSRSWorlds.location == "United Kingdom",
-            ),
-            schema.OSRSWorlds.members == True,
-            schema.OSRSWorlds.activity == "-",
+            schema.OSRSWorlds.location.in_(locations),
+            schema.OSRSWorlds.members == members,
+            schema.OSRSWorlds.activity == activity if activity is not None else True,
         ):
             ping_task = ping_world(
                 world.world_url,
@@ -138,13 +136,33 @@ async def insert_worlds(worlds):
     )
 
 
-async def main():
+async def main(*args, **kwargs):
     try:
         worlds = getworlds()
-        await insert_worlds(worlds)
+        await insert_worlds(worlds, *args, **kwargs)
     except Exception as e:
         LOGGER.error(f"Error: {e}")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--locations",
+        nargs="+",
+        default=["Germany", "United Kingdom"],
+        help="Locations to ping",
+    )
+    parser.add_argument(
+        "--members",
+        action="store_true",
+        help="Whether to ping members worlds",
+        default=True,
+    )
+    parser.add_argument(
+        "--activity",
+        type=str,
+        help="Activity to filter by",
+        default="-"
+    )
+    args = parser.parse_args()
+    asyncio.run(main(locations=args.locations, members=args.members, activity=args.activity))
