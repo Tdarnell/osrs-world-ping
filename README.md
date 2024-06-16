@@ -2,6 +2,8 @@
 
 This Python script scrapes the Old School RuneScape (OSRS) world list and stores the data in a SQLite database. 
 
+![OSRS World Scraper](.github/output.png)
+
 ## Dependencies
 
 The script uses the following Python libraries:
