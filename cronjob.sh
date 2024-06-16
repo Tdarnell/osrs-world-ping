@@ -9,8 +9,8 @@ script="(cd "$(readlink -f .)" || exit 1; .venv/bin/python "$(readlink -f run.py
 if [ "$action" == "add" ] || [ "$action" == "a" ]; then
     # ask for the time to run the script
     # add the cronjob
-    (crontab -l; echo "0 * * * * $script") | crontab -
-    echo "Cronjob added successfully! Running the script every hour."
+    (crontab -l; echo "*/15 * * * * $script") | crontab -
+    echo "Cronjob added successfully! Running the script every 15 mins."
 # if the user wants to remove the cronjob
 elif [ "$action" == "remove" ] || [ "$action" == "r" ]; then
     # remove the cronjob
