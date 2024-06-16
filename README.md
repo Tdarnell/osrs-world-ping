@@ -25,7 +25,27 @@ Finally, the script pings all member worlds located in Germany or the United Kin
 
 Run the script with the command `python run.py`.
 
-## Cron Job
+### Setup and Running the Script
+
+1. **Install Python**: Download and install Python from the [official Python website](https://www.python.org/downloads/). Ensure to add Python to PATH during installation if you want to run Python from the command line without extra steps. 
+
+2. (Optional) **Set Up a Virtual Environment**: Create a virtual environment using `python -m venv .venv` and activate it using `source .venv/bin/activate` on Linux or `.\.venv\Scripts\activate` on Windows. The Cronjob Management Script expects a virtual environment to be set up in the current directory.
+
+3. **Clone the Repository**: Download the code from this repository using `git clone` or by downloading it as a ZIP file from the repository page on GitHub.
+
+4. **Install Dependencies**: Navigate to the directory containing the code and run `python -m pip install -r requirements.txt` to install the necessary Python libraries.
+
+5. **Run the Script**: In the terminal, navigate to the directory containing the code and run `python run.py`. (Optionally specify the countries to ping as command line arguments.)
+
+### Script Arguments
+
+The script accepts several command-line arguments to customise its behavior:
+
+1. **--locations**: This argument allows you to specify the locations of the worlds to ping. It accepts one or more values. By default, it pings worlds located in Germany and the United Kingdom. Example usage: `--locations Germany "United Kingdom"`.
+
+2. **--members**: This argument determines whether to ping members worlds. It's a boolean flag. If provided, the script will ping members worlds; if not, it won't. By default, it pings members worlds. Example usage: `--members 0`.
+
+3. **--activity**: This argument allows you to filter worlds by activity. It accepts a string value. By default, it filters by `"-"` which means no activity. Example usage: `--activity "Bounty Hunter"`.
 
 ## Cronjob Management Script
 
