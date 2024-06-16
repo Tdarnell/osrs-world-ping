@@ -1,8 +1,6 @@
-from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
 import re
 import sys
-import time
 
 import sqlalchemy as sa
 from utils import schema
@@ -121,6 +119,7 @@ async def insert_worlds(worlds):
                 schema.OSRSWorlds.location == "United Kingdom",
             ),
             schema.OSRSWorlds.members == True,
+            schema.OSRSWorlds.activity == "-",
         ):
             ping_task = ping_world(
                 world.world_url,
